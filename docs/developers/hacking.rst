@@ -188,6 +188,156 @@ virtual environment (using the :command:`workon` command) and running the
 Happy hacking!!
 
 
+.. _hacking#windows:
+
+Setting up the development environment on Windows
+-------------------------------------------------
+
+.. note:: Ensure that you are executing all of the following steps with Administrator privileges!
+
+Install Redis
+^^^^^^^^^^^^^
+
+Download the latest installer from:
+    https://github.com/MSOpenTech/redis/releases
+
+During the installation you will be asked to set what port Redis should listen on; leave it at the default (6379).
+
+Install Nodejs
+^^^^^^^^^^^^^^
+
+Download the latest installer from:
+    https://nodejs.org/en/
+
+Pootle Set Up
+^^^^^^^^^^^^^
+
+.. note:: For convenient these instructions consistently specify paths ``C:\venv`` and ``C:\git\pootle``, but you can change these to suit your environment and needs.
+
+For installing the dependencies in an isolated environment, set up a fresh virtualenv.
+
+.. code-block:: console
+
+    > python -m pip install virtualenv
+    > virtualenv C:\venv
+
+Activate the new virtualenv and upgrade pip:
+
+.. code-block:: console
+
+    > C:\venv\Scripts\activate
+    (venv)> python -m pip install --upgrade pip
+
+Go to the pootle ``requirements\base.txt`` and comment out the following packages:
+
+.. code-block:: console
+
+    # lxml
+    # levenshtein
+    # scandir
+
+These three packages are difficult to build on Windows, so we will download pre-built versions to install manually 
+further on.
+
+Also change any ``~=`` compatible-version markers into ``==`` exact-version markers, 
+as Windows-based ``pip`` doesn't seem to like these.
+
+To avoid permissions issues, required packages have to be downloaded and installed in separate steps. 
+By default, pip stores temporary files in your ``user\AppData`` folder which may not allow access in 
+all circumstances. There are also some packages that need to be downloaded and installed manually.
+Create a temporary folder somewhere that any user can access without permission issues (e.g. ``C:\temp``).
+If you are seeing "directory was not empty" or "file not found" errors during a ``pip install``, then these 
+next commands will solve the problem.
+
+.. code-block:: console
+
+    (venv)> python -m pip install -r requirements\dev.txt -b C:\temp -d C:\temp
+    (venv)> python -m pip install -r requirements\dev.txt -b C:\temp -t C:\venv\Lib\site-packages\ --no-index --find-links="C:\temp"
+
+Next, download the appropriate installers for your system and Python version for the special requirements, 
+saving them into your temporary folder.
+
+- http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
+- http://www.lfd.uci.edu/~gohlke/pythonlibs/#Python-Levenshtein
+- http://www.lfd.uci.edu/~gohlke/pythonlibs/#scandir
+
+Now install them explicitly:
+
+.. code-block:: console
+
+    (venv)> python -m pip install C:\temp\lxml-3.6.4-cp27-cp27m-win32.whl
+    (venv)> python -m pip install C:\temp\python_Levenshtein-0.12.0-cp27-none-win32.whl
+    (venv)> python -m pip install C:\temp\scandir-1.2-cp27-none-win32.whl
+
+Now that all the requirements are lined up, we are ready to initialise Pootle.
+
+Clone your fork of the Pootle master using your favourite Windows implementation of Git so that you have a working 
+copy somewhere accessible on your computer (e.g. ``C:\git\pootle``).
+
+First, rename ``90-dev-local.conf.sample`` to ``90-dev-local.conf`` (in ``pootle\settings``) to enable a basic 
+configuration suitable for local hacking. Then initialise your local Pootle working copy into the virtualenv:
+
+.. code-block:: console
+
+    (venv)> cd C:\git\pootle
+    (venv)> pip install -e .
+
+At this point you should be able to initialise the Pootle demo database as normal:
+
+.. code-block:: console
+
+    (venv)> python manage.py migrate
+    (venv)> python manage.py initdb
+
+Next, you will need to deactivate the virtual environment in order to set up the client-side bundles with NPM.
+
+.. code-block:: console
+
+    (venv)> deactivate
+    C:\git\pootle> cd pootle\static\js
+    C:\git\pootle\pootle\static\js> npm install
+
+The virtualenv must be reactivated to enabled the actual compiled javascript bundles to be generated:
+
+.. code-block:: console
+
+    > C:\venv\Scripts\activate
+    (venv)> python manage.py webpack --dev
+
+The ``webpack`` command will keep running after it's completed, to monitor your javascript files for changes so that it 
+can auto-recompile as you work. You'll need to either exit it with ``Ctrl+C`` once it has settled down, or else open 
+up a new command prompt and activate your virtual environment there too.
+
+One last javascript pack needs to be compiled to complete the client-side preparations:
+
+.. code-block:: console
+
+    (venv)> python manage.py compilejsi18n
+
+Now create and verify a super-user as normal:
+
+.. code-block:: console
+
+    (venv)> python manage.py createsuperuser
+    [Follow on-screen prompts.]
+    (venv)> python manage.py verify_user [username]
+
+Pootle is now ready to be fired up!
+
+You will need to run one RQWorker and one Pootle server, so you'll need two command prompt 
+windows (as both will remain active until you disable the server):
+
+.. code-block:: console
+
+    (venv)> python manage.py rqworker
+
+.. code-block:: console
+
+    (venv)> python manage.py runserver
+
+Congratulations, Pootle should now be running comfortably! Happy hacking on Windows!!
+
+
 .. _hacking#workflow:
 
 Workflow
