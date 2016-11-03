@@ -212,13 +212,19 @@ Download the latest installer from:
 Pootle Set Up
 ^^^^^^^^^^^^^
 
-.. note:: For convenient these instructions consistently specify paths ``C:\venv`` and ``C:\git\pootle``, but you can change these to suit your environment and needs.
+.. note:: For convenience these instructions consistently specify paths ``C:\venv`` and ``C:\git\pootle``, but you can 
+    change these to suit your environment and needs.
+
+.. note:: Depending on how correctly your environment is set up (depending on factors beyond your control such as 
+    virus scanners, Windows system health, and so on), you may need to use the command ``python -m pip`` for the 
+    following steps if the basic ``pip`` commands fail. Similarly, any other Python command that should 'just work' 
+    might need to be invoked with ``python -m`` to avoid issues.
 
 For installing the dependencies in an isolated environment, set up a fresh virtualenv.
 
 .. code-block:: console
 
-    > python -m pip install virtualenv
+    > pip install virtualenv
     > virtualenv C:\venv
 
 Activate the new virtualenv and upgrade pip:
@@ -226,48 +232,45 @@ Activate the new virtualenv and upgrade pip:
 .. code-block:: console
 
     > C:\venv\Scripts\activate
-    (venv)> python -m pip install --upgrade pip
+    (venv)> pip install --upgrade pip
 
 Go to the pootle ``requirements\base.txt`` and comment out the following packages:
 
 .. code-block:: console
 
     # lxml
-    # levenshtein
+    # python-levenshtein
     # scandir
 
 These three packages are difficult to build on Windows, so we will download pre-built versions to install manually 
 further on.
-
-Also change any ``~=`` compatible-version markers into ``==`` exact-version markers, 
-as Windows-based ``pip`` doesn't seem to like these.
 
 To avoid permissions issues, required packages have to be downloaded and installed in separate steps. 
 By default, pip stores temporary files in your ``user\AppData`` folder which may not allow access in 
 all circumstances. There are also some packages that need to be downloaded and installed manually.
 Create a temporary folder somewhere that any user can access without permission issues (e.g. ``C:\temp``).
 If you are seeing "directory was not empty" or "file not found" errors during a ``pip install``, then these 
-next commands will solve the problem.
+next commands should circumvent the problem.
 
 .. code-block:: console
 
-    (venv)> python -m pip install -r requirements\dev.txt -b C:\temp -d C:\temp
-    (venv)> python -m pip install -r requirements\dev.txt -b C:\temp -t C:\venv\Lib\site-packages\ --no-index --find-links="C:\temp"
+    (venv)> pip download -d C:\temp -r requirements\dev.txt -b C:\temp
+    (venv)> pip install -r requirements\dev.txt -b C:\temp -t C:\venv\Lib\site-packages\ --no-index --find-links="C:\temp"
 
 Next, download the appropriate installers for your system and Python version for the special requirements, 
 saving them into your temporary folder.
 
 - http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
-- http://www.lfd.uci.edu/~gohlke/pythonlibs/#Python-Levenshtein
+- http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-levenshtein
 - http://www.lfd.uci.edu/~gohlke/pythonlibs/#scandir
 
 Now install them explicitly:
 
 .. code-block:: console
 
-    (venv)> python -m pip install C:\temp\lxml-3.6.4-cp27-cp27m-win32.whl
-    (venv)> python -m pip install C:\temp\python_Levenshtein-0.12.0-cp27-none-win32.whl
-    (venv)> python -m pip install C:\temp\scandir-1.2-cp27-none-win32.whl
+    (venv)> pip install C:\temp\lxml-3.6.4-cp27-cp27m-win32.whl
+    (venv)> pip install C:\temp\python_Levenshtein-0.12.0-cp27-none-win32.whl
+    (venv)> pip install C:\temp\scandir-1.2-cp27-none-win32.whl
 
 Now that all the requirements are lined up, we are ready to initialise Pootle.
 
@@ -282,27 +285,33 @@ configuration suitable for local hacking. Then initialise your local Pootle work
     (venv)> cd C:\git\pootle
     (venv)> pip install -e .
 
-At this point you should be able to initialise the Pootle demo database as normal:
+At this point you should be able to initialise the Pootle demo database as normal.
+
+.. note:: Depending on how successful your system has engaged the virtual environment, you may have to execute 
+    ``pootle`` commands with ``python manage.py`` from the pootle root folder instead (e.g. ``python manage.py migrate`` 
+    instead of ``pootle migrate``).
 
 .. code-block:: console
 
-    (venv)> python manage.py migrate
-    (venv)> python manage.py initdb
+    (venv)> pootle migrate
+    (venv)> pootle initdb
 
-Next, you will need to deactivate the virtual environment in order to set up the client-side bundles with NPM.
+Next, you will need to set up the client-side bundles with NPM. It might be necessary to deactivate the virtual environment 
+to perform this step and then reactivate it afterwards, but it might also Just Work from within the venv.
 
 .. code-block:: console
 
-    (venv)> deactivate
+    [(venv)> deactivate]
     C:\git\pootle> cd pootle\static\js
     C:\git\pootle\pootle\static\js> npm install
+    [> C:\venv\Scripts\activate]
 
-The virtualenv must be reactivated to enabled the actual compiled javascript bundles to be generated:
+Now the actual javascript bundles can be compiled:
 
 .. code-block:: console
 
-    > C:\venv\Scripts\activate
-    (venv)> python manage.py webpack --dev
+    (venv)> cd C:\git\pootle
+    (venv)> pootle webpack --dev
 
 The ``webpack`` command will keep running after it's completed, to monitor your javascript files for changes so that it 
 can auto-recompile as you work. You'll need to either exit it with ``Ctrl+C`` once it has settled down, or else open 
@@ -312,15 +321,15 @@ One last javascript pack needs to be compiled to complete the client-side prepar
 
 .. code-block:: console
 
-    (venv)> python manage.py compilejsi18n
+    (venv)> pootle compilejsi18n
 
 Now create and verify a super-user as normal:
 
 .. code-block:: console
 
-    (venv)> python manage.py createsuperuser
+    (venv)> pootle createsuperuser
     [Follow on-screen prompts.]
-    (venv)> python manage.py verify_user [username]
+    (venv)> pootle verify_user [username]
 
 Pootle is now ready to be fired up!
 
@@ -329,11 +338,11 @@ windows (as both will remain active until you disable the server):
 
 .. code-block:: console
 
-    (venv)> python manage.py rqworker
+    (venv)> pootle rqworker
 
 .. code-block:: console
 
-    (venv)> python manage.py runserver
+    (venv)> pootle runserver
 
 Congratulations, Pootle should now be running comfortably! Happy hacking on Windows!!
 
